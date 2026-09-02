@@ -14,9 +14,9 @@ Pod::Spec.new do |s|
   s.source       = { :git => "https://github.com/skanderhk/react-native-mfa-trustbuilder.git", :tag => "#{s.version}" }
 
   s.source_files = "ios/**/*.{h,m,mm,swift,cpp}"
-  s.private_header_files = "ios/**/*.h"
+  s.public_header_files = "ios/RNTrustbuilder.h"
 
-  s.vendored_libraries = "ios/libs/*.a"
+  s.vendored_frameworks = "ios/libs/libmaccess.xcframework"
 
   s.preserve_paths = "ios/iw.h"
 

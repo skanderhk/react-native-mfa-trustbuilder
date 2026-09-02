@@ -21,9 +21,34 @@ const LINKING_ERROR =
   '- You rebuilt the app after installing the package\n' +
   '- You are not using Expo managed workflow\n';
 
+function resolveNativeModule(name: string): any {
+  if (NativeModules && (NativeModules as any)[name])
+    return (NativeModules as any)[name];
+  try {
+    const {
+      TurboModuleRegistry,
+    } = require('react-native/Libraries/TurboModule/TurboModuleRegistry');
+    if (TurboModuleRegistry && TurboModuleRegistry.get) {
+      const tm = TurboModuleRegistry.get(name);
+      if (tm) return tm;
+    }
+  } catch (e) {
+    console.error('Error while trying to resolve native module:', e);
+    // ignore
+  }
+  if (
+    typeof globalThis !== 'undefined' &&
+    (globalThis as any).__turboModuleProxy &&
+    (globalThis as any).__turboModuleProxy[name]
+  ) {
+    return (globalThis as any).__turboModuleProxy[name];
+  }
+  return null;
+}
+
 const RNTrustbuilder = (
-  NativeModules.RNTrustbuilder
-    ? NativeModules.RNTrustbuilder
+  resolveNativeModule('RNTrustbuilder')
+    ? resolveNativeModule('RNTrustbuilder')
     : new Proxy(
         {},
         {
