@@ -11,6 +11,20 @@ extern "C" {
 @property (nonatomic, strong) NSString *webCallResult;
 @end
 
+static void RNTrustbuilderSaveStorageIfChanged(IW *iw) {
+  if (!iw || IWStorageDataChanged(iw) <= 0) return;
+
+  char *storageData = IWStorageDataGet(iw);
+  if (storageData) {
+    NSString *storageString = [NSString stringWithUTF8String:storageData];
+    if (storageString) {
+      [[NSUserDefaults standardUserDefaults] setObject:storageString forKey:@"trustbuilder_storage_data"];
+      [[NSUserDefaults standardUserDefaults] synchronize];
+    }
+  }
+  IWStorageDataRelease(iw);
+}
+
 // Static C function matching WEBSERVICECALL signature
 static int RNTrustbuilderWebServiceCall(char *url, int timeoutMs, void *user) {
     RNTrustbuilder *self = (__bridge RNTrustbuilder *)user;
@@ -108,10 +122,7 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(initialize:(NSString *)config)
 RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(setStorageData:(NSString *)data) {
   [[NSUserDefaults standardUserDefaults] setObject:data forKey:@"trustbuilder_storage_data"];
   [[NSUserDefaults standardUserDefaults] synchronize];
-  char *cData = strdup(data.UTF8String);
-  int result = IWStorageDataSet(self.iw, cData);
-  free(cData);
-  return @(result == 0);
+  return @YES;
 }
 
 RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(getStorageData) {
@@ -138,6 +149,7 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(activationStart:(NSString *)code) {
   char *cCode = strdup(code.UTF8String);
   int result = IWActivationStart(self.iw, cCode);
   free(cCode);
+  if (result == 0) RNTrustbuilderSaveStorageIfChanged(self.iw);
   return RNTrustbuilderResult(result);
 }
 
@@ -147,6 +159,7 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(activationFinalize:(NSString *)code pin:(
   char *cName = strdup(name.UTF8String);
   int result = IWActivationFinalize(self.iw, cCode, cPin, cName);
   free(cCode); free(cPin); free(cName);
+  if (result == 0) RNTrustbuilderSaveStorageIfChanged(self.iw);
   return RNTrustbuilderResult(result);
 }
 
@@ -154,6 +167,7 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(resetStart:(NSString *)code) {
   char *cCode = strdup(code.UTF8String);
   int result = IWResetStart(self.iw, cCode);
   free(cCode);
+  if (result == 0) RNTrustbuilderSaveStorageIfChanged(self.iw);
   return RNTrustbuilderResult(result);
 }
 
@@ -162,55 +176,79 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(resetFinalize:(NSString *)code pin:(NSStr
   char *cPin = strdup(pin.UTF8String);
   int result = IWResetFinalize(self.iw, cCode, cPin);
   free(cCode); free(cPin);
+  if (result == 0) RNTrustbuilderSaveStorageIfChanged(self.iw);
   return RNTrustbuilderResult(result);
 }
 
-RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(synchronizeStart) { return RNTrustbuilderResult(IWSynchronizeStart(self.iw)); }
+RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(synchronizeStart) {
+  int result = IWSynchronizeStart(self.iw);
+  if (result == 0) RNTrustbuilderSaveStorageIfChanged(self.iw);
+  return RNTrustbuilderResult(result);
+}
 
 RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(synchronizeFinalize:(NSString *)pin) {
   char *cPin = strdup(pin.UTF8String);
   int result = IWSynchronizeFinalize(self.iw, cPin);
   free(cPin);
+  if (result == 0) RNTrustbuilderSaveStorageIfChanged(self.iw);
   return RNTrustbuilderResult(result);
 }
 
-RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(pwdUpdateStart) { return RNTrustbuilderResult(IWPwdUpdateStart(self.iw)); }
+RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(pwdUpdateStart) {
+  int result = IWPwdUpdateStart(self.iw);
+  if (result == 0) RNTrustbuilderSaveStorageIfChanged(self.iw);
+  return RNTrustbuilderResult(result);
+}
 
 RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(pwdUpdateFinalize:(NSString *)newPin currentPin:(NSString *)currentPin) {
   char *cNewPin = strdup(newPin.UTF8String);
   char *cCurrentPin = strdup(currentPin.UTF8String);
   int result = IWPwdUpdateFinalize(self.iw, cNewPin, cCurrentPin);
   free(cNewPin); free(cCurrentPin);
+  if (result == 0) RNTrustbuilderSaveStorageIfChanged(self.iw);
   return RNTrustbuilderResult(result);
 }
 
-RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(setBiokeyStart) { return RNTrustbuilderResult(IWSetBiokeyStart(self.iw)); }
+RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(setBiokeyStart) {
+  int result = IWSetBiokeyStart(self.iw);
+  if (result == 0) RNTrustbuilderSaveStorageIfChanged(self.iw);
+  return RNTrustbuilderResult(result);
+}
 
 RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(setBiokeyFinalize:(NSString *)biokey pin:(NSString *)pin) {
   char *cBiokey = strdup(biokey.UTF8String);
   char *cPin = strdup(pin.UTF8String);
   int result = IWSetBiokeyFinalize(self.iw, cBiokey, cPin);
   free(cBiokey); free(cPin);
+  if (result == 0) RNTrustbuilderSaveStorageIfChanged(self.iw);
   return RNTrustbuilderResult(result);
 }
 
-RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(unsetBiokeysStart) { return RNTrustbuilderResult(IWUnsetBiokeysStart(self.iw)); }
+RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(unsetBiokeysStart) {
+  int result = IWUnsetBiokeysStart(self.iw);
+  if (result == 0) RNTrustbuilderSaveStorageIfChanged(self.iw);
+  return RNTrustbuilderResult(result);
+}
 
 RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(unsetBiokeysFinalize:(NSString *)pin) {
   char *cPin = strdup(pin.UTF8String);
   int result = IWUnsetBiokeysFinalize(self.iw, cPin);
   free(cPin);
+  if (result == 0) RNTrustbuilderSaveStorageIfChanged(self.iw);
   return RNTrustbuilderResult(result);
 }
 
 RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(onlineOtpStart:(double)serviceIndex) {
-  return RNTrustbuilderResult(IWOnlineOtpStart(self.iw, (int)serviceIndex));
+  int result = IWOnlineOtpStart(self.iw, (int)serviceIndex);
+  if (result == 0) RNTrustbuilderSaveStorageIfChanged(self.iw);
+  return RNTrustbuilderResult(result);
 }
 
 RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(onlineOtpFinalize:(double)serviceIndex pin:(NSString *)pin keyType:(double)keyType) {
   char *cPin = strdup(pin.UTF8String);
   int result = IWOnlineOtpFinalizeExt(self.iw, (int)serviceIndex, cPin, (int)keyType);
   free(cPin);
+  if (result == 0) RNTrustbuilderSaveStorageIfChanged(self.iw);
   return RNTrustbuilderResult(result);
 }
 
@@ -234,12 +272,17 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(setDeviceOS:(NSString *)deviceOS) {
   return nil;
 }
 
-RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(pushRegistrationStart) { return RNTrustbuilderResult(IWPushRegistrationStart(self.iw)); }
+RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(pushRegistrationStart) {
+  int result = IWPushRegistrationStart(self.iw);
+  if (result == 0) RNTrustbuilderSaveStorageIfChanged(self.iw);
+  return RNTrustbuilderResult(result);
+}
 
 RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(pushRegistrationFinalize:(NSString *)pushId) {
   char *cPushId = strdup(pushId.UTF8String);
   int result = IWPushRegistrationFinalize(self.iw, cPushId);
   free(cPushId);
+  if (result == 0) RNTrustbuilderSaveStorageIfChanged(self.iw);
   return RNTrustbuilderResult(result);
 }
 
@@ -249,7 +292,9 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(pushAction) { return RNTrustbuilderString
 RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(pushContext) { return RNTrustbuilderString(IWPushContext(self.iw)); }
 
 RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(onlineSealStart:(double)serviceIndex) {
-  return RNTrustbuilderResult(IWOnlineSealStart(self.iw, (int)serviceIndex));
+  int result = IWOnlineSealStart(self.iw, (int)serviceIndex);
+  if (result == 0) RNTrustbuilderSaveStorageIfChanged(self.iw);
+  return RNTrustbuilderResult(result);
 }
 
 RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(onlineSealFinalize:(double)serviceIndex pin:(NSString *)pin keyType:(double)keyType sealData:(NSString *)sealData) {
@@ -257,6 +302,7 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(onlineSealFinalize:(double)serviceIndex p
   char *cSealData = strdup(sealData.UTF8String);
   int result = IWOnlineSealFinalizeExt(self.iw, (int)serviceIndex, cPin, (int)keyType, cSealData);
   free(cPin); free(cSealData);
+  if (result == 0) RNTrustbuilderSaveStorageIfChanged(self.iw);
   return RNTrustbuilderResult(result);
 }
 
